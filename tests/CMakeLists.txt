@@ -1,0 +1,6 @@
+add_executable(run_tests test.cpp)
+# Linking up all libraries (includes the coverage settings set by 'example' library)
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
+find_package (gtest REQUIRED)
+include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+target_link_libraries(run_tests PRIVATE celestiale gtest gtest_main)

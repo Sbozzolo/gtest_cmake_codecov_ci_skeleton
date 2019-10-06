@@ -1,0 +1,47 @@
+language: cpp
+compiler: gcc
+dist: bionic
+
+addons:
+  apt:
+    packages:
+      - cppcheck
+      - valgrind
+      - doxygen
+      - lcov
+      - cmake
+      - libgtest-dev
+
+before_install:
+  - wget https://raw.githubusercontent.com/cpplint/cpplint/master/cpplint.py
+  - sudo wget https://github.com/google/googletest/archive/release-1.7.0.tar.gz
+  - sudo tar xf release-1.7.0.tar.gz
+  - cd googletest-release-1.7.0
+  - sudo cmake -DBUILD_SHARED_LIBS=ON .
+  - sudo make
+  - sudo cp -a include/gtest /usr/include
+  - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
+  - cd ..
+
+script:
+  - python3 cpplint.py --filter=-build/include_subdir --repository="." src/*.cpp include/*.h tests/*.cpp
+  - cppcheck --enable=warning,performance,style src/*.cpp include/*.h tests/*.cpp
+  - mkdir build && cd build && cmake .. && make && mv celestiale_main .. && cd ..
+  - mkdir build_test && cd build_test && cmake -DCODE_COVERAGE=ON -DBUILD_TESTING=ON .. && make && mv run_tests .. && cd ..
+  - valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all ./celestiale_main
+  - valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all ./run_tests
+  - lcov --directory build_test --capture --output-file coverage.info
+  - lcov --remove coverage.info '/usr/*' --output-file coverage.info
+  - lcov --list coverage.info
+  - uname -a
+  - g++ --version
+  - valgrind --version
+  - cppcheck --version
+  - lcov --version
+  - python3 cpplint.py --version
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+
+notifications:
+  email: false
